@@ -123,8 +123,8 @@ Function Remove-CacheItem {
     ## Delete cache item if it's non persisted
     If ($CacheItems.ContentID -contains $CacheItemToDelete) {
 
-        $CacheItemLocation = $CacheItems | Where {$_.ContentID -Contains $CacheItemToDelete} | Select -ExpandProperty Location
-        $CacheItemSize =  Get-ChildItem $CacheItemLocation -Recurse -Force | Measure-Object -Property Length -Sum | Select -ExpandProperty Sum
+        $CacheItemLocation = $CacheItems | Where-Object {$_.ContentID -Contains $CacheItemToDelete} | Select-Object -ExpandProperty Location
+        $CacheItemSize =  Get-ChildItem $CacheItemLocation -Recurse -Force | Measure-Object -Property Length -Sum | Select-Object -ExpandProperty Sum
 
         #  Check if cache item is downloaded
         If ($CacheItemSize -gt '0.00') {
@@ -135,7 +135,7 @@ Function Remove-CacheItem {
             $CMCacheObjects.GetCacheElements() | Where-Object {$_.ContentID -eq $CacheItemToDelete} |
                 ForEach-Object {
                     $CMCacheObjects.DeleteCacheElement($_.CacheElementID)
-                    Write-Host 'Deleted: '$CacheItemName -BackgroundColor Red
+                    Write-Host "Deleted: $CacheItemName" -BackgroundColor Red
                 }
 
             $ResultProps = [ordered]@{
@@ -151,7 +151,7 @@ Function Remove-CacheItem {
 
     }
     Else {
-        Write-Host 'Already Deleted:'$CacheItemName '|| ID:'$CacheItemToDelete -BackgroundColor Green
+        Write-Host "Already Deleted: $CacheItemName ; ID: $CacheItemToDelete" -BackgroundColor Green
     }
 }
 #endregion
@@ -445,7 +445,7 @@ Try {
 
 		$Result =  $Global:Result | Sort-Object Size`(MB`) -Descending
 
-		$TotalDeletedSize = $Result | Measure-Object -Property Size`(MB`) -Sum | Select -ExpandProperty Sum
+		$TotalDeletedSize = $Result | Measure-Object -Property Size`(MB`) -Sum | Select-Object -ExpandProperty Sum
 		If ($TotalDeletedSize -eq $null -or $TotalDeletedSize -eq '0.00') {
 		    $TotalDeletedSize = 'Nothing to Delete!'
 		}
