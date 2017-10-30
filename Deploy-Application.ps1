@@ -101,7 +101,7 @@ Function Clear-CacheItem {
 .DESCRIPTION
     Removes specified SCCM cached package.
     Called by the following functions:
-    Remove-CachedApplication, Remove-CachedPackage, Remove-CachedUpdate & Remove-OrphanedCacheItem
+    Clear-CachedApplication, Clear-CachedPackage, Clear-CachedUpdate & Clear-OrphanedCacheItem
 .PARAMETER CacheItemToDelete
     The cache item ID that needs to be deleted.
 .PARAMETER CacheItemName
@@ -157,8 +157,8 @@ Function Clear-CacheItem {
 #endregion
 
 
-#region Function Remove-CachedApplication
-Function Remove-CachedApplication {
+#region Function Clear-CachedApplication
+Function Clear-CachedApplication {
 <#
 .DESCRIPTION
     Removes specified SCCM cached update if it's not needed anymore.
@@ -197,8 +197,8 @@ Function Remove-CachedApplication {
 #endregion
 
 
-#region Function Remove-CachedPackage
-Function Remove-CachedPackage {
+#region Function Clear-CachedPackage
+Function Clear-CachedPackage {
 <#
 .DESCRIPTION
     Removes specified SCCM cached package if it's not needed anymore.
@@ -248,8 +248,8 @@ Function Remove-CachedPackage {
 #endregion
 
 
-#region Function Remove-CachedUpdate
-Function Remove-CachedUpdate {
+#region Function Clear-CachedUpdate
+Function Clear-CachedUpdate {
 <#
 .DESCRIPTION
     Removes specified SCCM cached update if it's not needed anymore.
@@ -279,8 +279,8 @@ Function Remove-CachedUpdate {
 #endregion
 
 
-#region Function Remove-OrphanedCacheItem
-Function Remove-OrphanedCacheItem {
+#region Function Clear-OrphanedCacheItem
+Function Clear-OrphanedCacheItem {
 <#
 .DESCRIPTION
     Removes SCCM orphaned cache items not found in Applications, Packages or Update CIM Tables.
@@ -439,10 +439,10 @@ Try {
 		    Write-Output 'Getting SCCM Cache Info from CIM - Failed! Check if SCCM Client is Installed!'
 		}
 
-		Remove-CachedApplication
-		Remove-CachedPackage
-		Remove-CachedUpdate
-		Remove-OrphanedCacheItem
+		Clear-CachedApplication
+		Clear-CachedPackage
+		Clear-CachedUpdate
+		Clear-OrphanedCacheItem
 
 		$Result =  $Script:Result | Sort-Object Size`(MB`) -Descending
 
