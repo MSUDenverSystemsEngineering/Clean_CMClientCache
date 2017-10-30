@@ -146,7 +146,7 @@ Function Remove-CacheItem {
                 'Status' = 'Deleted!'
             }
 
-            $Global:Result += New-Object PSObject -Property $ResultProps
+            $Script:Result += New-Object PSObject -Property $ResultProps
         }
 
     }
@@ -186,7 +186,7 @@ Function Remove-CachedApplication {
                 Remove-CacheItem -CacheTD $AppContent.ContentID -CacheN $Application.FullName
             }
             Else {
-                $Global:ExclusionList += $AppContent.ContentID
+                $Script:ExclusionList += $AppContent.ContentID
             }
 
         }
@@ -239,7 +239,7 @@ Function Remove-CachedPackage {
             Remove-CacheItem -CacheTD $Package.PackageID -CacheN $Package.PackageName
         }
         Else {
-            $Global:ExclusionList += $Package.PackageID
+            $Script:ExclusionList += $Package.PackageID
         }
 
     }
@@ -270,7 +270,7 @@ Function Remove-CachedUpdate {
             Remove-CacheItem -CacheTD $Update.UniqueID -CacheN $Update.Title
         }
         Else {
-            $Global:ExclusionList += $Update.UniqueID
+            $Script:ExclusionList += $Update.UniqueID
         }
 
     }
@@ -289,7 +289,7 @@ Function Remove-OrphanedCacheItem {
     ## Check if cached updates are not needed and delete them
     ForEach ($CacheItem in $CacheItems) {
 
-        If ($Global:ExclusionList -notcontains $CacheItem.ContentID) {
+        If ($Script:ExclusionList -notcontains $CacheItem.ContentID) {
             Remove-CacheItem -CacheTD $CacheItem.ContentID -CacheN 'Orphaned Cache Item'
         }
 
@@ -397,8 +397,8 @@ Try {
 		   Remove-Folder -path "$envWinDir\Management\DiskCleanup"
 	  }
 
-		$Global:Result  =@()
-		$Global:ExclusionList  =@()
+		$Script:Result =@()
+		$Script:ExclusionList =@()
 
 		$ResultCSV = 'C:\Temp\Clean-CMClientCache.log'
 		If (Test-Path $ResultCSV) {
@@ -444,11 +444,11 @@ Try {
 		Remove-CachedUpdate
 		Remove-OrphanedCacheItem
 
-		$Result =  $Global:Result | Sort-Object Size`(MB`) -Descending
+		$Result =  $Script:Result | Sort-Object Size`(MB`) -Descending
 
 		$TotalDeletedSize = $Result | Measure-Object -Property Size`(MB`) -Sum | Select-Object -ExpandProperty Sum
 		If ($null -eq $TotalDeletedSize -or $TotalDeletedSize -eq '0.00') {
-		    $TotalDeletedSize = 'Nothing to Delete!'
+		    $TotalDeletedSize = 'Nada'
 		}
 		Else {
 		    $TotalDeletedSize = '{0:N2}' -f $TotalDeletedSize
