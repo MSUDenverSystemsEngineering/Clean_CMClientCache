@@ -101,7 +101,7 @@ Function Remove-CacheItem {
 .DESCRIPTION
     Removes specified SCCM cached package.
     Called by the following functions:
-    Remove-CachedApplications, Remove-CachedPackages, Remove-CachedUpdates & Remove-OrphanedCacheItems
+    Remove-CachedApplication, Remove-CachedPackage, Remove-CachedUpdate & Remove-OrphanedCacheItem
 .PARAMETER CacheItemToDelete
     The cache item ID that needs to be deleted.
 .PARAMETER CacheItemName
@@ -135,7 +135,7 @@ Function Remove-CacheItem {
             $CMCacheObjects.GetCacheElements() | Where-Object {$_.ContentID -eq $CacheItemToDelete} |
                 ForEach-Object {
                     $CMCacheObjects.DeleteCacheElement($_.CacheElementID)
-                    Write-Host "Deleted: $CacheItemName" -BackgroundColor Red
+                    Write-Output "Deleted: $CacheItemName"
                 }
 
             $ResultProps = [ordered]@{
@@ -146,19 +146,19 @@ Function Remove-CacheItem {
                 'Status' = 'Deleted!'
             }
 
-            $Global:Result  += New-Object PSObject -Property $ResultProps
+            $Global:Result += New-Object PSObject -Property $ResultProps
         }
 
     }
     Else {
-        Write-Host "Already Deleted: $CacheItemName ; ID: $CacheItemToDelete" -BackgroundColor Green
+        Write-Output "Already Deleted: $CacheItemName ; ID: $CacheItemToDelete"
     }
 }
 #endregion
 
 
-#region Function Remove-CachedApplications
-Function Remove-CachedApplications {
+#region Function Remove-CachedApplication
+Function Remove-CachedApplication {
 <#
 .DESCRIPTION
     Removes specified SCCM cached update if it's not needed anymore.
@@ -166,20 +166,21 @@ Function Remove-CachedApplications {
 
     #Get list of Applications
     Try {
-        $CM_Applications = Get-WmiObject -Namespace root\ccm\ClientSDK -Query 'SELECT * FROM CCM_Application' -ErrorAction Stop
+        $CM_Applications = Get-CimInstance -Namespace root\ccm\ClientSDK -Query 'SELECT * FROM CCM_Application' -ErrorAction Stop
     }
     Catch {
-        Write-Host 'Get SCCM Application List from WMI - Failed!'
+        Write-Output 'Get SCCM Application List from CIM - Failed!'
     }
 
     Foreach ($Application in $CM_Applications) {
 
-        $Application.Get()
+        #$Application.Get()
         Foreach ($DeploymentType in $Application.AppDTs) {
 
             ## Get content ID for specific application deployment type
             $AppType = 'Install',$DeploymentType.Id,$DeploymentType.Revision
-            $AppContent = Invoke-WmiMethod -Namespace root\ccm\cimodels -Class CCM_AppDeliveryType -Name GetContentInfo -ArgumentList $AppType
+            $AppContent = Invoke-CimMethod -Namespace root\ccm\cimodels -ClassName CCM_AppDeliveryType -MethodName "GetContentInfo" -Arguments $AppType
+						#$AppContent = Invoke-CIMMethod -Namespace root\ccm\cimodels -Class CCM_AppDeliveryType -Name GetContentInfo -ArgumentList $AppType
 
             If ($Application.InstallState -eq 'Installed' -and $Application.IsMachineTarget -and $AppContent.ContentID) {
                 Remove-CacheItem -CacheTD $AppContent.ContentID -CacheN $Application.FullName
@@ -196,18 +197,18 @@ Function Remove-CachedApplications {
 #endregion
 
 
-#region Function Remove-CachedPackages
-Function Remove-CachedPackages {
+#region Function Remove-CachedPackage
+Function Remove-CachedPackage {
 <#
 .DESCRIPTION
     Removes specified SCCM cached package if it's not needed anymore.
 #>
 
     Try {
-        $CM_Packages = Get-WmiObject -Namespace root\ccm\ClientSDK -Query 'SELECT PackageID,PackageName,LastRunStatus,RepeatRunBehavior FROM CCM_Program' -ErrorAction Stop
+        $CM_Packages = Get-CimInstance -Namespace root\ccm\ClientSDK -Query 'SELECT PackageID,PackageName,LastRunStatus,RepeatRunBehavior FROM CCM_Program' -ErrorAction Stop
     }
     Catch {
-        Write-Host 'Get SCCM Package List from WMI - Failed!'
+        Write-Output 'Get SCCM Package List from CIM - Failed!'
     }
 
     ## Check if any deployed programs in the package need the cached package and add deletion or exemption list for comparison
@@ -247,8 +248,8 @@ Function Remove-CachedPackages {
 #endregion
 
 
-#region Function Remove-CachedUpdates
-Function Remove-CachedUpdates {
+#region Function Remove-CachedUpdate
+Function Remove-CachedUpdate {
 <#
 .DESCRIPTION
     Removes specified SCCM cached update if it's not needed anymore.
@@ -256,10 +257,10 @@ Function Remove-CachedUpdates {
 
     ## Get list of updates
     Try {
-        $CM_Updates = Get-WmiObject -Namespace root\ccm\SoftwareUpdates\UpdatesStore -Query 'SELECT UniqueID,Title,Status FROM CCM_UpdateStatus' -ErrorAction Stop
+        $CM_Updates = Get-CimInstance -Namespace root\ccm\SoftwareUpdates\UpdatesStore -Query 'SELECT UniqueID,Title,Status FROM CCM_UpdateStatus' -ErrorAction Stop
     }
     Catch {
-        Write-Host 'Get SCCM Software Update List from WMI - Failed!'
+        Write-Output 'Get SCCM Software Update List from CIM - Failed!'
     }
 
     ## Check if cached updates are not needed and delete them
@@ -278,11 +279,11 @@ Function Remove-CachedUpdates {
 #endregion
 
 
-#region Function Remove-OrphanedCacheItems
-Function Remove-OrphanedCacheItems {
+#region Function Remove-OrphanedCacheItem
+Function Remove-OrphanedCacheItem {
 <#
 .DESCRIPTION
-    Removes SCCM orphaned cache items not found in Applications, Packages or Update WMI Tables.
+    Removes SCCM orphaned cache items not found in Applications, Packages or Update CIM Tables.
 #>
 
     ## Check if cached updates are not needed and delete them
@@ -432,21 +433,21 @@ Try {
 
 		## Get list of all non persisted content in CCMCache, only this content will be removed
 		Try {
-		    $CacheItems = Get-WmiObject -Namespace root\ccm\SoftMgmtAgent -Query 'SELECT ContentID,Location FROM CacheInfoEx WHERE PersistInCache != 1' -ErrorAction Stop
+				$CacheItems = Get-CimInstance -Namespace root\ccm\SoftMgmtAgent -Query 'SELECT ContentID,Location FROM CacheInfoEx WHERE PersistInCache != 1' -ErrorAction Stop
 		}
 		Catch {
-		    Write-Host 'Getting SCCM Cache Info from WMI - Failed! Check if SCCM Client is Installed!'
+		    Write-Output 'Getting SCCM Cache Info from CIM - Failed! Check if SCCM Client is Installed!'
 		}
 
-		Remove-CachedApplications
-		Remove-CachedPackages
-		Remove-CachedUpdates
-		Remove-OrphanedCacheItems
+		Remove-CachedApplication
+		Remove-CachedPackage
+		Remove-CachedUpdate
+		Remove-OrphanedCacheItem
 
 		$Result =  $Global:Result | Sort-Object Size`(MB`) -Descending
 
 		$TotalDeletedSize = $Result | Measure-Object -Property Size`(MB`) -Sum | Select-Object -ExpandProperty Sum
-		If ($TotalDeletedSize -eq $null -or $TotalDeletedSize -eq '0.00') {
+		If ($null -eq $TotalDeletedSize -or $TotalDeletedSize -eq '0.00') {
 		    $TotalDeletedSize = 'Nothing to Delete!'
 		}
 		Else {
@@ -460,7 +461,10 @@ Try {
 		    'Size(MB)' = 'N/A'
 		    'Status' = ' ***** Last Run Date: '+$Date+' *****'
 		}
-		$Result += New-Object PSObject -Property $ResultProps
+
+		$addResult = New-Object PSObject -Property $ResultProps
+		$Result = [Array]$Result + $addResult
+		#$Result += New-Object PSObject -Property $ResultProps
 
 		#Write Date Registry Entry to be evaluated later by Cleanup policy's Detection Method
 		New-Folder -path "C:\Windows\Management\DiskCleanup"
@@ -472,7 +476,7 @@ Try {
 		Invoke-SCCMTask 'HardwareInventory'
 
 		Write-Log -Message $Result
-		Write-Host 'Processing Finished!' -BackgroundColor Green -ForegroundColor White
+		Write-Output 'Processing Finished!'
 
 		#endregion
 
