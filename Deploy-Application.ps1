@@ -95,8 +95,8 @@ Function Write-Log {
 #endregion
 
 
-#region Function Clean-CacheItem
-Function Clean-CacheItem {
+#region Function Clear-CacheItem
+Function Clear-CacheItem {
 <#
 .DESCRIPTION
     Removes specified SCCM cached package.
@@ -107,7 +107,7 @@ Function Clean-CacheItem {
 .PARAMETER CacheItemName
     The cache item name that needs to be deleted.
 .EXAMPLE
-    Clean-CacheItem -CacheItemToDelete '{234234234}' -CacheItemName 'Office2003'
+    Clear-CacheItem -CacheItemToDelete '{234234234}' -CacheItemName 'Office2003'
 #>
 
     [CmdletBinding()]
@@ -183,7 +183,7 @@ Function Remove-CachedApplication {
 						#$AppContent = Invoke-CIMMethod -Namespace root\ccm\cimodels -Class CCM_AppDeliveryType -Name GetContentInfo -ArgumentList $AppType
 
             If ($Application.InstallState -eq 'Installed' -and $Application.IsMachineTarget -and $AppContent.ContentID) {
-                Clean-CacheItem -CacheTD $AppContent.ContentID -CacheN $Application.FullName
+                Clear-CacheItem -CacheTD $AppContent.ContentID -CacheN $Application.FullName
             }
             Else {
                 $Script:ExclusionList += $AppContent.ContentID
@@ -236,7 +236,7 @@ Function Remove-CachedPackage {
     ForEach ($Package in $PackageIDDeleteTrue) {
 
         If ($Package -NotIn $PackageIDDeleteFalse) {
-            Clean-CacheItem -CacheTD $Package.PackageID -CacheN $Package.PackageName
+            Clear-CacheItem -CacheTD $Package.PackageID -CacheN $Package.PackageName
         }
         Else {
             $Script:ExclusionList += $Package.PackageID
@@ -267,7 +267,7 @@ Function Remove-CachedUpdate {
     ForEach ($Update in $CM_Updates) {
 
         If ($Update.Status -eq 'Installed') {
-            Clean-CacheItem -CacheTD $Update.UniqueID -CacheN $Update.Title
+            Clear-CacheItem -CacheTD $Update.UniqueID -CacheN $Update.Title
         }
         Else {
             $Script:ExclusionList += $Update.UniqueID
@@ -290,7 +290,7 @@ Function Remove-OrphanedCacheItem {
     ForEach ($CacheItem in $CacheItems) {
 
         If ($Script:ExclusionList -notcontains $CacheItem.ContentID) {
-            Clean-CacheItem -CacheTD $CacheItem.ContentID -CacheN 'Orphaned Cache Item'
+            Clear-CacheItem -CacheTD $CacheItem.ContentID -CacheN 'Orphaned Cache Item'
         }
 
     }
