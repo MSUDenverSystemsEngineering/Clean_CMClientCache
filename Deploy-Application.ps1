@@ -84,7 +84,7 @@ Try {
 	.DESCRIPTION
 	    Removes specified SCCM cached package.
 	    Called by the following functions:
-	    Clear-CachedApplication, Clear-CachedPackage, Clear-CachedUpdate & Clear-OrphanedCacheItem
+	    Clear-CachedApplication, Clear-CachedPackage, Clear-CachedUpdate & Clear-OrphanedSeveredCacheItem
 	.PARAMETER CacheItemToDelete
 	    The cache item ID that needs to be deleted.
 	.PARAMETER CacheItemName
@@ -172,7 +172,7 @@ Try {
 	            $AppContent = Invoke-CimMethod -Namespace root\ccm\cimodels -ClassName CCM_AppDeliveryType -MethodName GetContentInfo -Arguments $AppType
 
 	            If ($Application.InstallState -eq 'Installed' -and $Application.IsMachineTarget -and $AppContent.ContentID) {
-									Write-Log "Deleting cached app. ApplicationName: $($Application.Name); ContentID: $($AppContent.ContentID)"
+									Write-Log "Calling Clear-CacheItem Function: ApplicationName: $($Application.Name); ContentID: $($AppContent.ContentID)"
 									Clear-CacheItem -CacheTD $AppContent.ContentID -CacheN $Application.Name
 	            }
 	            Else {
@@ -276,12 +276,14 @@ Try {
 	#endregion
 
 
-	#region Function Clear-OrphanedCacheItem
-	Function Clear-OrphanedCacheItem {
+	#region Function Clear-OrphanedSeveredCacheItem
+	Function Clear-OrphanedSeveredCacheItem {
 	<#
 	.DESCRIPTION
 	    Removes SCCM orphaned cache items not found in Applications, Packages or Update CIM Tables.
 	#>
+			#Orphaned - CCMCache Index table contains an entry for Content not found as an Application, Package or Update deployed to the client
+			#Severed - Folder no longer listed as an entry in CCMCache Index table, yet it is present at c:\windows\CCMCache
 
 	    ## Check if cached updates are not needed and delete them
 	    ForEach ($CacheItem in $CacheItems) {
@@ -291,7 +293,30 @@ Try {
 	            Clear-CacheItem -CacheTD $CacheItem.ContentID -CacheN 'Orphaned Cache Item'
 	        }
 
-	    }
+			}
+
+			#Building Arrays with Cache folder locations
+			$cacheFolders = Get-ChildItem $envWinDir\ccmcache -Directory | Select FullName
+			$CacheItemsLocation =@()
+			ForEach ($CacheItem in $CacheItems) {
+						$CacheItemsLocation += $CacheItem.Location
+			}
+
+			#Checking for any pending downloads since they are not listed in cache till after downloaded.
+			ForEach ($cacheFolder in $cacheFolders) {
+				If ($cacheFolder.FullName.EndsWith(".BDRTEMP")) {
+						$CacheItemsLocation += $cacheFolder.FullName
+						$CacheItemsLocation += $cacheFolder.FullName.Replace(".BDRTEMP", "")
+				}
+			}
+
+			#Remove folders severed from CCMCache index Table
+			ForEach ($cacheFolder in $cacheFolders) {
+					If ($CacheItemsLocation -notcontains $cacheFolder.FullName) {
+						Write-Log "Removing Severed Cache folder: $($cacheFolder.FullName)"
+						Remove-File -Path $cacheFolder.FullName -Recurse
+					}
+			}
 
 	}
 	#endregion
@@ -386,7 +411,7 @@ Try {
 		Clear-CachedApplication
 		Clear-CachedPackage
 		Clear-CachedUpdate
-		Clear-OrphanedCacheItem
+		Clear-OrphanedSeveredCacheItem
 
 		$Result =  $Script:Result | Sort-Object Size`(MB`) -Descending
 
