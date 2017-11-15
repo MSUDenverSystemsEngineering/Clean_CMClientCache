@@ -296,7 +296,7 @@ Try {
 			}
 
 			#Building Arrays with Cache folder locations
-			$cacheFolders = Get-ChildItem $envWinDir\ccmcache -Directory | Select FullName
+			$cacheFolders = Get-ChildItem $envWinDir\ccmcache -Directory | Select-Object -ExpandProperty FullName
 			$CacheItemsLocation =@()
 			ForEach ($CacheItem in $CacheItems) {
 						$CacheItemsLocation += $CacheItem.Location
